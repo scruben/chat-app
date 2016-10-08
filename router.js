@@ -3,44 +3,34 @@
 const fs = require('fs');
 const qs = require('querystring');
 
+const dm = require('./datamanager.js')
+
 module.exports = function (req, res) {
   let file;
   if (req.method === 'POST' && req.url === '/messages') {
+    // write message to the 'database'
     file = undefined;
     var body = '';
     req.on('data', function (data) {
       body += data;
-      if (body.length > 1e6)
-          req.connection.destroy();
     });
     req.on('end', function () {
       var message = qs.parse(body);
-      fs.appendFile('./db/messages.db','\n'+message.content);
+      dm.writeMessage(message);
     });
   } else if (req.method === 'GET' && req.url === '/messages') {
-    // fs.readFile('db/messages.db', "utf-8", (err, data) => {
-    //   res.setHeader('Content-Type', 'application/json');
-    //   if (err) throw err;
-    //   var arrMessages = data.split('\n');
-    //   for (var i=0; i<arrMessages.length; i++) {
-    //     arrMessages[i] = { content: arrMessages[i]};
-    //   }
-    //   res.end(JSON.stringify(arrMessages));
-    // });
-        var data = fs.readFileSync('db/messages.db', "utf-8");
-        res.setHeader('Content-Type', 'application/json');
-        var arrMessages = data.split('\n');
-        for (var i=0; i<arrMessages.length; i++) {
-          arrMessages[i] = { content: arrMessages[i]};
-        }
-        res.end(JSON.stringify(arrMessages));
+    // get all the messages
+    var arrMessages = dm.loadMessages();
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(arrMessages));
   } else if (req.url === '/index.html' || req.url === '/') {
+    // serve index.html
     file = 'static/index.html';
   } else if (req.url.indexOf('.') !== -1) {
-    // TODO; rewrite this to better detection and send correct header
-    // according to the extension
+    // return files like .js or .css
     if (fileExists('./static'+req.url)) file = './static'+req.url;
     else {
+      // if file is not found
       res.statusCode = 404;
       file = 'static/404.html';
     }
@@ -57,6 +47,7 @@ module.exports = function (req, res) {
   }
 };
 
+// Checks if file exists
 function fileExists(filePath)
 {
   try
