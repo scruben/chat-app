@@ -1,13 +1,17 @@
 'use strict';
 
-const fs = require('fs');
 const qs = require('querystring');
+const url = require('url');
+const fs = require('fs');
 
-const dm = require('./datamanager.js')
+const dm = require('./datamanager.js');
+const ut = require('./utils.js');
 
 module.exports = function (req, res) {
   let file;
+
   if (req.method === 'POST' && req.url === '/messages') {
+
     // write message to the 'database'
     file = undefined;
     var body = '';
@@ -18,26 +22,37 @@ module.exports = function (req, res) {
       var message = qs.parse(body);
       dm.writeMessage(message);
     });
-  } else if (req.method === 'GET' && req.url === '/messages') {
+
+  } else if (req.method === 'GET' && url.parse(req.url).pathname === '/messages') {
+
     // get all the messages
-    var arrMessages = dm.loadMessages();
+    var searchOptions = ut.parseSearch((url.parse(req.url)).search);
+    var arrMessages = dm.loadMessages(searchOptions);
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(arrMessages));
+
   } else if (req.url === '/index.html' || req.url === '/') {
+
     // serve index.html
     file = 'static/index.html';
+
   } else if (req.url.indexOf('.') !== -1) {
+
     // return files like .js or .css
-    if (fileExists('./static'+req.url)) file = './static'+req.url;
+    if (ut.fileExists('./static'+req.url)) file = './static'+req.url;
     else {
       // if file is not found
       res.statusCode = 404;
       file = 'static/404.html';
     }
+
   } else {
+
     res.statusCode = 404;
     file = 'static/404.html';
+
   }
+
   if (file !== undefined) {
     fs.readFile(file, function (err, data) {
       res.end(data);
@@ -46,16 +61,3 @@ module.exports = function (req, res) {
     res.end();
   }
 };
-
-// Checks if file exists
-function fileExists(filePath)
-{
-  try
-  {
-    return fs.statSync(filePath).isFile();
-  }
-  catch (err)
-  {
-    return false;
-  }
-}
