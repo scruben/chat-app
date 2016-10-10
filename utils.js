@@ -20,9 +20,11 @@ exports.parseSearch = function (str) {
   var output = {};
   var reg = /(\w+\=\d+)+/g;
   var searches = str.match(reg);
-  for (var i = 0; i < searches.length; i++) {
-    var temp = searches[i].split('=');
-    if (temp.length === 2) output[temp[0]] = Number(temp[1]);
+  if (searches !== null) {
+    for (var i = 0; i < searches.length; i++) {
+      var temp = searches[i].split('=');
+      if (temp.length === 2) output[temp[0]] = Number(temp[1]);
+    }
   }
   return output;
 };
